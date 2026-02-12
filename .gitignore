@@ -1,0 +1,63 @@
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- Virtual Environments ---
+.venv/
+.venv-py311/
+venv/
+env/
+
+# --- VS Code ---
+.vscode/
+
+# --- OS ---
+.DS_Store
+
+# --- Backend secrets ---
+backend/secrets/
+*.json
+
+# --- Backend dataset files ---
+backend/data/
+*.png
+*.jpg
+*.jpeg
+
+# --- Backend model weights ---
+*.pt
+*.pth
+
+# --- FAISS indexes ---
+
+
+# env files (NEVER commit)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+frontend/.env
+frontend/.env.local
+
+# node / build
+node_modules/
+.next/
+tests/
+jest.config.js
+.DS_Store
+.DS_Store
+backend/workers/embedder.py.backup
+requirements.txt.backup
+
+pgdata/
+SimSun.ttf
+*.sql
+object_detection.log
+backend/faiss_indexes/*.index
+backend/faiss_indexes/*.npy
+backend/*.log
+backend/faiss_indexes/*.index
+backend/faiss_indexes/*.npy

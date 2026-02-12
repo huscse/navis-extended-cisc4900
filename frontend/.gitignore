@@ -1,0 +1,53 @@
+# Node / Next.js
+node_modules/
+.next/
+out/
+dist/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+package-lock.json
+yarn.lock
+.pnpm-debug.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs
+*.log
+*.log.*
+npm-debug.log*
+
+# Editor stuff
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Python (FastAPI backend)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+.mypy_cache/
+.pytest_cache/
+.venv/
+venv/
+.env/
+
+# Build / Coverage
+build/
+coverage/
+htmlcov/
+*.egg-info/
+.eggs/
+
+# OS files
+Thumbs.db
+.DS_Store

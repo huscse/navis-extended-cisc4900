@@ -1,0 +1,12 @@
+@import 'tailwindcss';
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+button[aria-label='Open Next.js Dev Overlay'],
+[data-nextjs-dev-overlay],
+[data-nextjs-portal] {
+  display: none !important;
+}
