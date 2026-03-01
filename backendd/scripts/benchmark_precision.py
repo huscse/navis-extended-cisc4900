@@ -1,8 +1,6 @@
 """
 NAVIS-Extended Baseline Benchmark: Precision@K Evaluation
 ==========================================================
-Run this BEFORE making improvements to establish baseline scores.
-Then run again AFTER improvements to measure delta.
 
 Usage:
     python benchmark_precision.py
