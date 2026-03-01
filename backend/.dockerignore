@@ -1,0 +1,28 @@
+# flyctl launch added from .gitignore
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+
+# Virtual envs
+**/.venv
+**/.venv-py311
+**/venv
+**/env
+
+# Model weights (optional but recommended)
+**/*.pt
+
+# Node / Next.js
+**/node_modules
+**/.next
+
+# OS / Editor
+**/.DS_Store
+**/.vscode
+
+# flyctl launch added from venv/.gitignore
+# Created by venv; see https://docs.python.org/3/library/venv.html
+venv/**/*
+fly.toml

@@ -1,0 +1,21 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+psycopg[binary]==3.1.13
+psycopg2-binary==2.9.9
+numpy>=1.25.0,<2.0
+torch==2.1.0
+torchvision==0.16.0
+pillow==10.1.0
+ftfy==6.1.1
+regex==2023.10.3
+tqdm==4.66.1
+google-auth==2.23.4
+google-auth-httplib2==0.1.1
+google-api-python-client==2.108.0
+clip @ git+https://github.com/openai/CLIP.git
+faiss-cpu==1.9.0.post1
+pydantic==2.5.0
+python-multipart==0.0.6
+ultralytics==8.0.227
+transformers>=4.35.0
+sentence-transformers==2.2.2
