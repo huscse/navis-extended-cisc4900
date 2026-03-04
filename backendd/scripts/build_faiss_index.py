@@ -176,3 +176,4 @@ if __name__ == "__main__":
         print("No arguments provided - building COMBINED index for ALL datasets")
         print("=" * 60)
         build_combined_index()
+

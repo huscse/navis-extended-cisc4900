@@ -4,7 +4,7 @@
 
 > **Author**: Husnain Khaliq — Brooklyn College, CISC 4900
 > **Supervisor**: Taimoor Hafeez
-> **Project**: NAVIS-Extended — Improving Retrieval Precision in VLM-Powered Autonomous Driving Search
+> **Project**: NAVIS-Extended — Improving Retrieval Precision in VLM-Powered Autonomous Driving Search.
 
 This section documents all changes and additions made to the original NAVIS system as part of the CISC 4900 capstone project. The original `backend/` folder is unchanged. All capstone work lives in `backendd/`.
 
