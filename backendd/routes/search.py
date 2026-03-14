@@ -6,6 +6,7 @@ from psycopg.rows import dict_row
 from pathlib import Path
 import numpy as np
 from collections import defaultdict
+from backendd.services.hybrid_rerank import hybrid_rerank
 # DON'T import faiss here - import it inside the function
 
 from backendd.db.postgres import get_conn
@@ -54,14 +55,8 @@ class SearchResponse(BaseModel):
     hits: List[SearchHit]
 
 def _media_url(media_base_uri: Optional[str], media_key: str) -> str:
-    """
-    Build a URL that our /media route can serve.
-    - gdrive://<rootId>/...  -> /media/gdrive/<media_key>
-    - file:///...            -> /media/local/<media_key>
-    """
     if not media_base_uri:
         return f"/media/local/{media_key}"
-
     parsed = urlparse(media_base_uri)
     if parsed.scheme == "gdrive":
         return f"/media/gdrive/{media_key}"
@@ -75,7 +70,7 @@ def search(
     sequence: Optional[str] = Query(None, description="Sequence name/scene filter"),
     objects: Optional[str] = Query(None, description="Comma-separated object types to filter (e.g., 'car,person')"),
 ):
-    load_faiss_index()  # Load on first request, not at import
+    load_faiss_index()
     
     if _faiss_index is None or _frame_id_mapping is None:
         raise HTTPException(status_code=500, detail="FAISS index not loaded")
@@ -106,21 +101,19 @@ def search(
             print(f"🔍 Auto-detected objects in query '{q}': {objects}")
     
     # 1) Embed the text query
-    qvec = get_text_embedding(q)  # returns list[float] of length 512
-    qvec_np = np.array([qvec], dtype=np.float32)  # shape (1, 512)
+    qvec = get_text_embedding(q)
+    qvec_np = np.array([qvec], dtype=np.float32)
     
     # 2) Determine search multiplier based on filters
-    multiplier = 3  # Default
-    
+    multiplier = 3
+
     if objects:
-        # Check if searching for rare objects
         rare_objects = ['truck', 'motorcycle', 'traffic light', 'dog', 'bicycle', 'bus']
         object_list = [obj.strip() for obj in objects.split(',')]
-        
         if any(obj in rare_objects for obj in object_list):
-            multiplier = 50  # Much higher for rare objects
+            multiplier = 50
         else:
-            multiplier = 10  # Normal for common objects like car/person
+            multiplier = 10
     
     search_k = min(k * multiplier, _faiss_index.ntotal)
     distances, indices = _faiss_index.search(qvec_np, search_k)
@@ -157,17 +150,14 @@ def search(
     
     params = candidate_frame_ids
     
-    # Apply dataset filter
     if dataset:
         sql += " AND dataset_slug = %s"
         params.append(dataset)
     
-    # Apply sequence filter
     if sequence:
         sql += " AND sequence_name = %s"
         params.append(sequence)
     
-    # Apply object filter
     if objects:
         object_list = [obj.strip() for obj in objects.split(',')]
         placeholders_obj = ','.join(['%s'] * len(object_list))
@@ -181,44 +171,42 @@ def search(
         """
         params.extend(object_list)
     
-    # Execute query
     with get_conn() as conn, conn.cursor(row_factory=dict_row) as cur:
         cur.execute(sql, params)
         rows = cur.fetchall()
     
-    # 5) Build response with dataset diversity
+    # 5) Build flat candidate list for hybrid re-ranking
     frame_id_to_row = {r['frame_id']: r for r in rows}
     frame_id_to_distance = dict(zip(candidate_frame_ids, candidate_distances))
-    
-    # Group frames by dataset while preserving FAISS ranking order
-    dataset_frames = defaultdict(list)
-    seen_media_keys = set()
-    
+
+    flat_candidates = []
+    seen_for_rerank = set()
+
     for frame_id in candidate_frame_ids:
         if frame_id in frame_id_to_row:
             r = frame_id_to_row[frame_id]
-            media_key = r['media_key']
-            
-            # Skip duplicates
-            if media_key in seen_media_keys:
-                continue
-            
-            seen_media_keys.add(media_key)
-            dataset_name = r['dataset_name'] or r['dataset_slug']
-            
-            # Store frame data with its score
-            dataset_frames[dataset_name].append({
-                'frame_id': r['frame_id'],
-                'score': float(frame_id_to_distance[frame_id]),
-                'media_key': media_key,
-                'media_url': _media_url(r['media_base_uri'], media_key),
-                'dataset': dataset_name,
-                'sequence': r['sequence_name'],
-                'sensor': r['sensor'] or 'N/A',
-                'frame_number': r['sample_token'] or str(r['frame_id']),
-            })
-    
-    # Interleave results from different datasets for diversity
+            if r['media_key'] not in seen_for_rerank:
+                seen_for_rerank.add(r['media_key'])
+                flat_candidates.append({
+                    'frame_id': r['frame_id'],
+                    'score': float(frame_id_to_distance[frame_id]),
+                    'media_key': r['media_key'],
+                    'media_url': _media_url(r['media_base_uri'], r['media_key']),
+                    'dataset': r['dataset_name'] or r['dataset_slug'],
+                    'sequence': r['sequence_name'],
+                    'sensor': r['sensor'] or 'N/A',
+                    'frame_number': r['sample_token'] or str(r['frame_id']),
+                })
+
+    # 6) Hybrid re-rank using metadata signals from query
+    reranked_candidates = hybrid_rerank(flat_candidates, q)
+
+    # 7) Group by dataset for round-robin diversity
+    dataset_frames = defaultdict(list)
+    for frame in reranked_candidates:
+        dataset_frames[frame['dataset']].append(frame)
+
+    # 8) Interleave results from different datasets for diversity
     hits: List[SearchHit] = []
     dataset_iterators = {ds: iter(frames) for ds, frames in dataset_frames.items()}
     datasets = list(dataset_iterators.keys())
@@ -226,7 +214,6 @@ def search(
     if not datasets:
         return SearchResponse(query=q, k=k, hits=[])
     
-    # Round-robin through datasets
     current_dataset_idx = 0
     while len(hits) < k and dataset_iterators:
         dataset = datasets[current_dataset_idx % len(datasets)]
@@ -235,7 +222,6 @@ def search(
             frame_data = next(dataset_iterators[dataset])
             hits.append(SearchHit(**frame_data))
         except StopIteration:
-            # This dataset is exhausted, remove it
             del dataset_iterators[dataset]
             datasets.remove(dataset)
             if not datasets:
