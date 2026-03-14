@@ -201,33 +201,48 @@ def search(
     # 6) Hybrid re-rank using metadata signals from query
     reranked_candidates = hybrid_rerank(flat_candidates, q)
 
-    # 7) Group by dataset for round-robin diversity
+    # 7) Group by dataset for diversity-aware selection
     dataset_frames = defaultdict(list)
     for frame in reranked_candidates:
         dataset_frames[frame['dataset']].append(frame)
 
-    # 8) Interleave results from different datasets for diversity
-    hits: List[SearchHit] = []
-    dataset_iterators = {ds: iter(frames) for ds, frames in dataset_frames.items()}
-    datasets = list(dataset_iterators.keys())
-    
-    if not datasets:
+    if not dataset_frames:
         return SearchResponse(query=q, k=k, hits=[])
-    
-    current_dataset_idx = 0
-    while len(hits) < k and dataset_iterators:
-        dataset = datasets[current_dataset_idx % len(datasets)]
-        
-        try:
-            frame_data = next(dataset_iterators[dataset])
-            hits.append(SearchHit(**frame_data))
-        except StopIteration:
-            del dataset_iterators[dataset]
-            datasets.remove(dataset)
-            if not datasets:
+
+    # 8) Minimum quota + score-based fill
+    hits: List[SearchHit] = []
+    seen_hit_keys = set()
+
+    # Step 1: Guarantee minimum 2 results from each dataset that has candidates
+    MIN_PER_DATASET = 2
+    for ds, frames in dataset_frames.items():
+        count = 0
+        for frame in frames:
+            if count >= MIN_PER_DATASET:
                 break
-            continue
-        
-        current_dataset_idx += 1
-    
+            if frame['media_key'] not in seen_hit_keys:
+                seen_hit_keys.add(frame['media_key'])
+                hits.append(SearchHit(**frame))
+                count += 1
+
+    # Step 2: Fill remaining slots by hybrid score across all datasets
+    remaining = []
+    for ds, frames in dataset_frames.items():
+        for frame in frames:
+            if frame['media_key'] not in seen_hit_keys:
+                remaining.append(frame)
+
+    # Sort remaining by score ascending (lower = better)
+    remaining.sort(key=lambda x: x['score'])
+
+    for frame in remaining:
+        if len(hits) >= k:
+            break
+        if frame['media_key'] not in seen_hit_keys:
+            seen_hit_keys.add(frame['media_key'])
+            hits.append(SearchHit(**frame))
+
+    # Trim to k
+    hits = hits[:k]
+
     return SearchResponse(query=q, k=k, hits=hits)
