@@ -1,6 +1,3 @@
-Here's a full updated README for the repo root:
-
-```markdown
 # NAVIS-Extended — CISC 4900 Capstone
 
 **Husnain Khaliq · Brooklyn College · CISC 4900 Spring 2026**  
@@ -86,6 +83,7 @@ All results measured using `backendd/scripts/benchmark_precision.py` — 20 quer
 ---
 
 ## Repository Structure
+
 ```
 
 extend-navis/
@@ -108,7 +106,7 @@ extend-navis/
 ├── frontend/ # Original Next.js frontend (unchanged)
 └── README.md # This file
 
-````
+```
 
 ---
 
@@ -119,7 +117,7 @@ extend-navis/
 cd /path/to/extend-navis
 source .venv/bin/activate
 uvicorn backendd.app.main:app --reload
-````
+```
 
 **Important:** Always run from the project root, not from inside `backendd/`, so Python resolves `backendd.*` imports correctly.
 
