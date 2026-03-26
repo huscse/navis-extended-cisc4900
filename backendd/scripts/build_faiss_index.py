@@ -153,16 +153,84 @@ def build_combined_index():
     print(f"✅ Saved frame ID mapping to: {mapping_path}")
 
 
+def build_hnsw_index(M=32, efSearch=32):
+    """Build HNSW index with tuned parameters from sweep."""
+    
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("""
+            SELECT e.frame_id, e.emb, d.slug
+            FROM navis.embeddings e
+            JOIN navis.frames f ON e.frame_id = f.id
+            JOIN navis.sequences s ON f.sequence_id = s.id
+            JOIN navis.datasets d ON s.dataset_id = d.id
+            ORDER BY e.frame_id
+        """)
+        rows = cur.fetchall()
+
+    if not rows:
+        print("❌ No embeddings found")
+        return
+
+    frame_ids = []
+    embeddings = []
+    dataset_counts = {}
+
+    for row in rows:
+        frame_id = row[0] if not isinstance(row, dict) else row['frame_id']
+        emb = row[1] if not isinstance(row, dict) else row['emb']
+        slug = row[2] if not isinstance(row, dict) else row['slug']
+
+        if isinstance(emb, str):
+            emb = json.loads(emb)
+
+        frame_ids.append(frame_id)
+        embeddings.append(emb)
+        dataset_counts[slug] = dataset_counts.get(slug, 0) + 1
+
+    print(f"✅ Found {len(embeddings)} embeddings")
+    print("\nDataset distribution:")
+    for dataset, count in sorted(dataset_counts.items()):
+        print(f"  - {dataset}: {count} frames")
+
+    embeddings_np = np.array(embeddings, dtype=np.float32)
+    d = embeddings_np.shape[1]
+
+    print(f"\nBuilding HNSW index (M={M}, efSearch={efSearch})...")
+    index = faiss.IndexHNSWFlat(d, M)
+    index.hnsw.efSearch = efSearch
+    index.add(embeddings_np)
+
+    print(f"✅ Built HNSW index with {index.ntotal} vectors")
+
+    index_dir = BACKEND_ROOT / "faiss_indexes"
+    index_dir.mkdir(exist_ok=True)
+
+    index_path = index_dir / "combined.index"
+    mapping_path = index_dir / "combined_mapping.npy"
+
+    faiss.write_index(index, str(index_path))
+    np.save(mapping_path, np.array(frame_ids, dtype=np.int32))
+
+    print(f"✅ Saved HNSW index to: {index_path}")
+    print(f"   M={M}, efSearch={efSearch}, vectors={index.ntotal}")
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Build FAISS index from embeddings')
-    parser.add_argument('--dataset', type=str, help='Build index for specific dataset (e.g., kitti, argoverse)')
-    parser.add_argument('--combined', action='store_true', help='Build combined index for all datasets')
-    
+    parser.add_argument('--dataset', type=str, help='Build index for specific dataset')
+    parser.add_argument('--combined', action='store_true', help='Build combined FlatL2 index')
+    parser.add_argument('--hnsw', action='store_true', help='Build combined HNSW index (M=32, efSearch=32)')
+
     args = parser.parse_args()
-    
-    if args.combined:
+
+    if args.hnsw:
         print("=" * 60)
-        print("Building COMBINED index for ALL datasets")
+        print("Building HNSW index (M=32, efSearch=32)")
+        print("=" * 60)
+        build_hnsw_index(M=32, efSearch=32)
+    elif args.combined:
+        print("=" * 60)
+        print("Building COMBINED FlatL2 index")
         print("=" * 60)
         build_combined_index()
     elif args.dataset:
@@ -171,9 +239,7 @@ if __name__ == "__main__":
         print("=" * 60)
         build_faiss_index(args.dataset)
     else:
-        # Default: build combined index
         print("=" * 60)
-        print("No arguments provided - building COMBINED index for ALL datasets")
+        print("No arguments — building COMBINED FlatL2 index")
         print("=" * 60)
         build_combined_index()
-
