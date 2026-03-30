@@ -16,6 +16,49 @@ import {
 import { useAuthSession } from '../lib/useAuthSession';
 import { addBookmark, removeBookmark, isBookmarked } from '../lib/bookmarks';
 
+// Convert L2 distance to match percentage
+const getMatchPercent = (score) => {
+  const MIN_SCORE = 1.2;
+  const MAX_SCORE = 1.6;
+  const clamped = Math.min(Math.max(score, MIN_SCORE), MAX_SCORE);
+  const percent = ((MAX_SCORE - clamped) / (MAX_SCORE - MIN_SCORE)) * 100;
+  return Math.round(percent);
+};
+
+// Dataset color config
+const DATASET_COLORS = {
+  KITTI: {
+    bg: 'bg-blue-500/20',
+    text: 'text-blue-300',
+    border: 'border-blue-500/30',
+  },
+  BDD10K: {
+    bg: 'bg-green-500/20',
+    text: 'text-green-300',
+    border: 'border-green-500/30',
+  },
+  Argoverse: {
+    bg: 'bg-purple-500/20',
+    text: 'text-purple-300',
+    border: 'border-purple-500/30',
+  },
+  NuScenes: {
+    bg: 'bg-orange-500/20',
+    text: 'text-orange-300',
+    border: 'border-orange-500/30',
+  },
+};
+
+const getDatasetColors = (dataset) => {
+  return (
+    DATASET_COLORS[dataset] || {
+      bg: 'bg-gray-500/20',
+      text: 'text-gray-300',
+      border: 'border-gray-500/30',
+    }
+  );
+};
+
 export default function ResultCard({ result, index, allResults = [] }) {
   const [shouldLoad, setShouldLoad] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -26,41 +69,31 @@ export default function ResultCard({ result, index, allResults = [] }) {
 
   const { session } = useAuthSession();
 
-  // Check if this is a duplicate frame (same media_key appears earlier in results)
   const isDuplicate = useMemo(() => {
     if (!result.media_key) return false;
-
     const currentMediaKey = result.media_key;
     for (let i = 0; i < index; i++) {
-      if (allResults[i]?.media_key === currentMediaKey) {
-        return true;
-      }
+      if (allResults[i]?.media_key === currentMediaKey) return true;
     }
     return false;
   }, [result.media_key, index, allResults]);
 
   useEffect(() => {
-    // Stagger loading - load 1 image every 2 seconds
     const delay = index * 2000;
     const timer = setTimeout(() => setShouldLoad(true), delay);
     return () => clearTimeout(timer);
   }, [index]);
 
-  // Check if bookmarked on mount
   useEffect(() => {
     if (session && result.frame_id) {
       isBookmarked(result.frame_id).then(setBookmarked);
     }
   }, [session, result.frame_id]);
 
-  // Don't render if duplicate
-  if (isDuplicate) {
-    return null;
-  }
+  if (isDuplicate) return null;
 
   const rawSrc = result.imageUrl || result.thumbnailUrl;
   const imgSrc = rawSrc ? encodeURI(rawSrc) : null;
-  const title = `Frame ${index + 1}`;
 
   const dataset = result.dataset || 'Unknown';
   const sequence = result.sequence || 'N/A';
@@ -68,16 +101,17 @@ export default function ResultCard({ result, index, allResults = [] }) {
     ? result.sensor.replace('image_', 'Camera ').replace(/_/g, ' ')
     : 'N/A';
   const frameNumber = result.frame_number || result.frame_id || 'N/A';
-  const score = result.score ? result.score.toFixed(3) : 'N/A';
   const caption = result.caption || '';
+  const matchPercent = result.score ? getMatchPercent(result.score) : null;
+  const datasetColors = getDatasetColors(dataset);
+  const rank = index + 1;
 
-  const handleImageError = (e) => {
+  const handleImageError = () => {
     if (retryCount < 2) {
       const retryDelay = Math.pow(2, retryCount) * 1000;
       setTimeout(() => {
         setRetryCount((prev) => prev + 1);
-        // Don't directly set src - let React re-render
-        setImgError(false); // Reset error state to trigger re-render
+        setImgError(false);
       }, retryDelay);
     } else {
       setImgError(true);
@@ -85,13 +119,11 @@ export default function ResultCard({ result, index, allResults = [] }) {
   };
 
   const handleBookmarkToggle = async (e) => {
-    e.stopPropagation(); // Prevent modal from opening
-
+    e.stopPropagation();
     if (!session) {
       alert('Please sign in to bookmark frames');
       return;
     }
-
     setBookmarkLoading(true);
     try {
       if (bookmarked) {
@@ -129,23 +161,23 @@ export default function ResultCard({ result, index, allResults = [] }) {
           {imgSrc && shouldLoad && !imgError ? (
             <>
               <img
-                key={`${imgSrc}-${retryCount}`} // Force re-render on retry
+                key={`${imgSrc}-${retryCount}`}
                 src={imgSrc}
-                alt={title}
+                alt={`Result #${rank}`}
                 className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 loading="lazy"
                 onError={handleImageError}
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-              {/* Zoom icon on hover */}
+              {/* Zoom icon */}
               <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                 <div className="bg-black/70 text-white p-3 rounded-full backdrop-blur-sm">
                   <ZoomIn className="w-6 h-6" />
                 </div>
               </div>
 
-              {/* Bookmark Button - Top Right */}
+              {/* Bookmark Button */}
               {session && (
                 <button
                   onClick={handleBookmarkToggle}
@@ -160,16 +192,32 @@ export default function ResultCard({ result, index, allResults = [] }) {
                 </button>
               )}
 
+              {/* Rank + Match Score Badge — top left */}
+              <div className="absolute top-2 left-2 flex items-center gap-1.5">
+                <div className="bg-black/80 text-white text-xs font-bold px-2 py-1 rounded-md backdrop-blur-sm">
+                  #{rank}
+                </div>
+                {matchPercent !== null && (
+                  <div
+                    className={`text-xs font-semibold px-2 py-1 rounded-md backdrop-blur-sm border
+                      ${
+                        matchPercent >= 55
+                          ? 'bg-green-600/80 text-white border-green-500/60'
+                          : matchPercent >= 35
+                          ? 'bg-gray-700/90 text-white border-gray-500/60'
+                          : 'bg-red-600/80 text-white border-red-500/60'
+                      }`}
+                  >
+                    {matchPercent}% match
+                  </div>
+                )}
+              </div>
+
               {retryCount > 0 && (
                 <div className="absolute bottom-2 right-2 bg-yellow-500/80 text-xs px-2 py-1 rounded">
                   Retrying...
                 </div>
               )}
-
-              {/* Similarity Score Badge */}
-              <div className="absolute top-2 left-2 bg-black/70 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm">
-                Score: {score}
-              </div>
             </>
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-600">
@@ -187,11 +235,19 @@ export default function ResultCard({ result, index, allResults = [] }) {
           )}
         </div>
 
-        {/* Content with Metadata */}
+        {/* Card Content */}
         <div className="p-5">
-          <h3 className="text-base font-semibold text-white mb-3 line-clamp-1 group-hover:text-gray-300 transition-colors">
-            {title}
-          </h3>
+          {/* Title row with dataset badge */}
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-semibold text-white group-hover:text-gray-300 transition-colors">
+              Result #{rank}
+            </h3>
+            <span
+              className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${datasetColors.bg} ${datasetColors.text} ${datasetColors.border}`}
+            >
+              {dataset}
+            </span>
+          </div>
 
           {/* Caption */}
           {caption && (
@@ -205,16 +261,8 @@ export default function ResultCard({ result, index, allResults = [] }) {
             </div>
           )}
 
-          {/* Metadata Grid */}
+          {/* Metadata */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Database className="w-4 h-4 text-blue-400 flex-shrink-0" />
-              <span className="text-xs text-gray-400">Dataset:</span>
-              <span className="text-sm text-white font-medium truncate">
-                {dataset}
-              </span>
-            </div>
-
             <div className="flex items-center gap-2">
               <Video className="w-4 h-4 text-green-400 flex-shrink-0" />
               <span className="text-xs text-gray-400">Sequence:</span>
@@ -238,7 +286,7 @@ export default function ResultCard({ result, index, allResults = [] }) {
         </div>
       </article>
 
-      {/* Modal - same as before */}
+      {/* Modal */}
       {showModal && (
         <div
           className="fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-sm"
@@ -254,13 +302,20 @@ export default function ResultCard({ result, index, allResults = [] }) {
           <div className="max-w-7xl w-full flex flex-col items-center gap-4">
             <img
               src={imgSrc}
-              alt={title}
+              alt={`Result #${rank}`}
               className="max-h-[70vh] w-auto object-contain rounded-lg"
               onClick={(e) => e.stopPropagation()}
             />
 
             <div className="w-full max-w-4xl bg-black/80 text-white p-4 rounded-lg backdrop-blur-sm border border-white/10">
-              <h3 className="text-lg font-semibold mb-3">{title}</h3>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-lg font-semibold">Result #{rank}</h3>
+                <span
+                  className={`text-sm font-semibold px-3 py-1 rounded-full border ${datasetColors.bg} ${datasetColors.text} ${datasetColors.border}`}
+                >
+                  {dataset}
+                </span>
+              </div>
 
               {caption && (
                 <p className="text-sm text-gray-300 mb-3 pb-3 border-b border-white/10 italic">
@@ -270,7 +325,18 @@ export default function ResultCard({ result, index, allResults = [] }) {
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
                 <div>
-                  <span className="text-gray-400">Dataset:</span> {dataset}
+                  <span className="text-gray-400">Match:</span>{' '}
+                  <span
+                    className={
+                      matchPercent >= 70
+                        ? 'text-green-300'
+                        : matchPercent >= 45
+                        ? 'text-yellow-300'
+                        : 'text-red-300'
+                    }
+                  >
+                    {matchPercent}%
+                  </span>
                 </div>
                 <div>
                   <span className="text-gray-400">Sequence:</span>
@@ -280,7 +346,8 @@ export default function ResultCard({ result, index, allResults = [] }) {
                   <span className="text-gray-400">Sensor:</span> {sensorDisplay}
                 </div>
                 <div>
-                  <span className="text-gray-400">Score:</span> {score}
+                  <span className="text-gray-400">Frame:</span>
+                  <span className="block truncate">{frameNumber}</span>
                 </div>
               </div>
             </div>
