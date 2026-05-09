@@ -79,7 +79,7 @@ export default function ResultCard({ result, index, allResults = [] }) {
   }, [result.media_key, index, allResults]);
 
   useEffect(() => {
-    const delay = index * 2000;
+    const delay = index * 3000;
     const timer = setTimeout(() => setShouldLoad(true), delay);
     return () => clearTimeout(timer);
   }, [index]);

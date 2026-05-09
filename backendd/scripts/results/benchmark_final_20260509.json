@@ -1,0 +1,380 @@
+{
+  "benchmark_type": "baseline",
+  "timestamp": "2026-05-09T13:42:50.609608",
+  "api_base": "http://localhost:8000",
+  "total_queries": 20,
+  "aggregate": {
+    "mean_precision_at_5": 0.9176,
+    "mean_precision_at_10": 0.9,
+    "mean_precision_at_20": 0.8912,
+    "mean_mrr": 1.0,
+    "mean_diversity_score": 0.5686
+  },
+  "queries": [
+    {
+      "query_id": "Q01",
+      "query_text": "car driving on road daytime",
+      "total_hits": 20,
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "precision_at_20": 1.0,
+      "mrr": 1.0,
+      "diversity_score": 0.3333,
+      "datasets_found": [
+        "BDD10K"
+      ],
+      "relevant_datasets": [
+        "KITTI",
+        "BDD10K",
+        "Argoverse"
+      ],
+      "note": "Generic driving query \u2014 all datasets relevant"
+    },
+    {
+      "query_id": "Q02",
+      "query_text": "highway with multiple vehicles",
+      "total_hits": 20,
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "precision_at_20": 1.0,
+      "mrr": 1.0,
+      "diversity_score": 0.3333,
+      "datasets_found": [
+        "BDD10K"
+      ],
+      "relevant_datasets": [
+        "KITTI",
+        "BDD10K",
+        "Argoverse"
+      ],
+      "note": "Highway scene"
+    },
+    {
+      "query_id": "Q03",
+      "query_text": "intersection with traffic lights",
+      "total_hits": 0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "precision_at_20": 0.0,
+      "mrr": 0.0,
+      "diversity_score": 0.0,
+      "datasets_found": [],
+      "relevant_datasets": [
+        "BDD10K",
+        "Argoverse"
+      ]
+    },
+    {
+      "query_id": "Q04",
+      "query_text": "pedestrian crossing street",
+      "total_hits": 20,
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "precision_at_20": 1.0,
+      "mrr": 1.0,
+      "diversity_score": 1.0,
+      "datasets_found": [
+        "Argoverse",
+        "BDD10K",
+        "KITTI"
+      ],
+      "relevant_datasets": [
+        "BDD10K",
+        "Argoverse",
+        "KITTI"
+      ],
+      "note": "Pedestrian detection query"
+    },
+    {
+      "query_id": "Q05",
+      "query_text": "people walking on sidewalk",
+      "total_hits": 20,
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "precision_at_20": 1.0,
+      "mrr": 1.0,
+      "diversity_score": 0.3333,
+      "datasets_found": [
+        "BDD10K"
+      ],
+      "relevant_datasets": [
+        "BDD10K",
+        "Argoverse"
+      ],
+      "note": "Urban pedestrian scene"
+    },
+    {
+      "query_id": "Q06",
+      "query_text": "driving at night dark road",
+      "total_hits": 20,
+      "precision_at_5": 0.6,
+      "precision_at_10": 0.8,
+      "precision_at_20": 0.9,
+      "mrr": 1.0,
+      "diversity_score": 0.6667,
+      "datasets_found": [
+        "BDD10K",
+        "KITTI"
+      ],
+      "relevant_datasets": [
+        "BDD10K"
+      ],
+      "note": "Night driving \u2014 BDD10K has night scenes"
+    },
+    {
+      "query_id": "Q07",
+      "query_text": "rainy weather wet road",
+      "total_hits": 20,
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "precision_at_20": 1.0,
+      "mrr": 1.0,
+      "diversity_score": 0.3333,
+      "datasets_found": [
+        "BDD10K"
+      ],
+      "relevant_datasets": [
+        "BDD10K"
+      ],
+      "note": "Rain condition query"
+    },
+    {
+      "query_id": "Q08",
+      "query_text": "clear sunny day open road",
+      "total_hits": 20,
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "precision_at_20": 1.0,
+      "mrr": 1.0,
+      "diversity_score": 0.6667,
+      "datasets_found": [
+        "BDD10K",
+        "KITTI"
+      ],
+      "relevant_datasets": [
+        "KITTI",
+        "BDD10K",
+        "Argoverse"
+      ],
+      "note": "Clear weather \u2014 all datasets relevant"
+    },
+    {
+      "query_id": "Q09",
+      "query_text": "urban city street with buildings",
+      "total_hits": 20,
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "precision_at_20": 1.0,
+      "mrr": 1.0,
+      "diversity_score": 1.0,
+      "datasets_found": [
+        "Argoverse",
+        "BDD10K",
+        "KITTI"
+      ],
+      "relevant_datasets": [
+        "BDD10K",
+        "Argoverse"
+      ],
+      "note": "Urban scene \u2014 BDD10K/Argoverse cities"
+    },
+    {
+      "query_id": "Q10",
+      "query_text": "rural road countryside",
+      "total_hits": 20,
+      "precision_at_5": 0.6,
+      "precision_at_10": 0.3,
+      "precision_at_20": 0.15,
+      "mrr": 1.0,
+      "diversity_score": 0.6667,
+      "datasets_found": [
+        "BDD10K",
+        "KITTI"
+      ],
+      "relevant_datasets": [
+        "KITTI"
+      ],
+      "note": "Rural road \u2014 KITTI Germany roads"
+    },
+    {
+      "query_id": "Q11",
+      "query_text": "bicycle cyclist on road",
+      "total_hits": 0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "precision_at_20": 0.0,
+      "mrr": 0.0,
+      "diversity_score": 0.0,
+      "datasets_found": [],
+      "relevant_datasets": [
+        "BDD10K",
+        "KITTI"
+      ]
+    },
+    {
+      "query_id": "Q12",
+      "query_text": "truck large vehicle highway",
+      "total_hits": 20,
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "precision_at_20": 1.0,
+      "mrr": 1.0,
+      "diversity_score": 0.6667,
+      "datasets_found": [
+        "BDD10K",
+        "KITTI"
+      ],
+      "relevant_datasets": [
+        "KITTI",
+        "BDD10K"
+      ],
+      "note": "Truck/large vehicle"
+    },
+    {
+      "query_id": "Q13",
+      "query_text": "stop sign at intersection",
+      "total_hits": 0,
+      "precision_at_5": 0.0,
+      "precision_at_10": 0.0,
+      "precision_at_20": 0.0,
+      "mrr": 0.0,
+      "diversity_score": 0.0,
+      "datasets_found": [],
+      "relevant_datasets": [
+        "BDD10K",
+        "Argoverse"
+      ]
+    },
+    {
+      "query_id": "Q14",
+      "query_text": "busy city intersection multiple cars pedestrians",
+      "total_hits": 20,
+      "precision_at_5": 0.8,
+      "precision_at_10": 0.8,
+      "precision_at_20": 0.9,
+      "mrr": 1.0,
+      "diversity_score": 1.0,
+      "datasets_found": [
+        "Argoverse",
+        "BDD10K",
+        "KITTI"
+      ],
+      "relevant_datasets": [
+        "BDD10K",
+        "Argoverse"
+      ],
+      "note": "Complex urban scene"
+    },
+    {
+      "query_id": "Q15",
+      "query_text": "empty road no traffic",
+      "total_hits": 20,
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "precision_at_20": 1.0,
+      "mrr": 1.0,
+      "diversity_score": 0.3333,
+      "datasets_found": [
+        "KITTI"
+      ],
+      "relevant_datasets": [
+        "KITTI",
+        "BDD10K"
+      ],
+      "note": "Empty road query"
+    },
+    {
+      "query_id": "Q16",
+      "query_text": "front camera view driving forward",
+      "total_hits": 20,
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "precision_at_20": 1.0,
+      "mrr": 1.0,
+      "diversity_score": 0.3333,
+      "datasets_found": [
+        "BDD10K"
+      ],
+      "relevant_datasets": [
+        "KITTI",
+        "BDD10K",
+        "Argoverse"
+      ],
+      "note": "Front camera view \u2014 all datasets"
+    },
+    {
+      "query_id": "Q17",
+      "query_text": "road markings lane lines visible",
+      "total_hits": 20,
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "precision_at_20": 1.0,
+      "mrr": 1.0,
+      "diversity_score": 0.3333,
+      "datasets_found": [
+        "KITTI"
+      ],
+      "relevant_datasets": [
+        "KITTI",
+        "BDD10K",
+        "Argoverse"
+      ],
+      "note": "Lane detection scenario"
+    },
+    {
+      "query_id": "Q18",
+      "query_text": "near collision dangerous situation",
+      "total_hits": 20,
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "precision_at_20": 1.0,
+      "mrr": 1.0,
+      "diversity_score": 0.3333,
+      "datasets_found": [
+        "BDD10K"
+      ],
+      "relevant_datasets": [
+        "BDD10K",
+        "Argoverse"
+      ],
+      "note": "Safety-critical scenario"
+    },
+    {
+      "query_id": "Q19",
+      "query_text": "parking lot vehicles stationary",
+      "total_hits": 20,
+      "precision_at_5": 0.6,
+      "precision_at_10": 0.4,
+      "precision_at_20": 0.2,
+      "mrr": 1.0,
+      "diversity_score": 1.0,
+      "datasets_found": [
+        "Argoverse",
+        "BDD10K",
+        "KITTI"
+      ],
+      "relevant_datasets": [
+        "BDD10K",
+        "Argoverse"
+      ],
+      "note": "Parking scenario"
+    },
+    {
+      "query_id": "Q20",
+      "query_text": "construction zone road works",
+      "total_hits": 20,
+      "precision_at_5": 1.0,
+      "precision_at_10": 1.0,
+      "precision_at_20": 1.0,
+      "mrr": 1.0,
+      "diversity_score": 0.3333,
+      "datasets_found": [
+        "BDD10K"
+      ],
+      "relevant_datasets": [
+        "BDD10K"
+      ],
+      "note": "Construction zone"
+    }
+  ]
+}

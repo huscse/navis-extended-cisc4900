@@ -71,18 +71,45 @@ export default function SearchPage() {
           placeholder="k"
           title="Top-K results"
         />
-        <input
-          className="border rounded-lg px-3 py-2"
-          value={dataset}
-          onChange={(e) => setDataset(e.target.value)}
-          placeholder="dataset (optional: kitti, nuscenes)"
-        />
-        <input
-          className="border rounded-lg px-3 py-2"
-          value={sequence}
-          onChange={(e) => setSequence(e.target.value)}
-          placeholder="sequence / scene (optional)"
-        />
+        <div className="flex gap-2 md:col-span-6">
+          {['', 'kitti', 'bdd10k', 'argoverse'].map((ds) => {
+            const labels = {
+              '': 'All',
+              kitti: 'KITTI',
+              bdd10k: 'BDD10K',
+              argoverse: 'Argoverse',
+            };
+            const colors = {
+              '':
+                dataset === ''
+                  ? 'bg-white text-black'
+                  : 'bg-white/10 text-white hover:bg-white/20',
+              kitti:
+                dataset === 'kitti'
+                  ? 'bg-blue-500 text-white'
+                  : 'bg-blue-500/20 text-blue-300 hover:bg-blue-500/40',
+              bdd10k:
+                dataset === 'bdd10k'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-green-500/20 text-green-300 hover:bg-green-500/40',
+              argoverse:
+                dataset === 'argoverse'
+                  ? 'bg-purple-500 text-white'
+                  : 'bg-purple-500/20 text-purple-300 hover:bg-purple-500/40',
+            };
+            return (
+              <button
+                key={ds}
+                type="button"
+                onClick={() => setDataset(ds)}
+                className={`px-4 py-2 rounded-full text-sm font-medium border border-white/10 transition-all duration-200 ${colors[ds]}`}
+              >
+                {labels[ds]}
+              </button>
+            );
+          })}
+        </div>
+
         <button
           type="submit"
           className="md:col-span-6 bg-black text-white rounded-lg px-4 py-2 hover:opacity-90"
