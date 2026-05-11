@@ -1,4 +1,4 @@
-# NAVIS-Extended — CISC 4900 Capstone
+# NAVIS-Extended -- CISC 4900 Capstone
 
 **Husnain Khaliq · Brooklyn College · CISC 4900 Spring 2026**  
 **Supervisor:** Taimoor Hafeez  
@@ -8,7 +8,7 @@
 
 ## What is NAVIS?
 
-NAVIS is a semantic search engine for autonomous driving datasets. Instead of manually browsing thousands of camera frames, engineers type a natural language query — like _"pedestrian crossing at night"_ or _"rainy intersection with traffic"_ — and the system returns the most visually relevant frames across multiple datasets in seconds.
+NAVIS is a semantic search engine for autonomous driving datasets. Instead of manually browsing thousands of camera frames, engineers type a natural language query -- like _"pedestrian crossing at night"_ or _"rainy intersection with traffic"_ -- and the system returns the most visually relevant frames across multiple datasets in seconds.
 
 The original system was built by a 7-person team during the Break Through Tech AI Studio challenge (Fall 2025), placing **Top 3 out of 120+ teams nationally**. It uses:
 
@@ -27,26 +27,26 @@ The system indexes frames from three embedded autonomous driving datasets: **KIT
 
 NAVIS-Extended is my independent CISC 4900 capstone project, extending the original proof-of-concept into a more precise, measurable, and architecturally sound system.
 
-The original system had no formal evaluation framework — there was no way to know if changes made things better or worse. My capstone introduces exactly that: a before/after measurement system with five targeted improvements.
+The original system had no formal evaluation framework -- there was no way to know if changes made things better or worse. My capstone introduces exactly that: a before/after measurement system with five targeted improvements.
 
 **The core question this project answers:**  
-_Can we improve retrieval precision and dataset diversity in a VLM-powered semantic search system through hybrid ranking and better indexing — and can we prove it with numbers?_
+_Can we improve retrieval precision and dataset diversity in a VLM-powered semantic search system through hybrid ranking and better indexing -- and can we prove it with numbers?_
 
 ---
 
 ## Goals and Improvements
 
-### 1. FAISS Index Reconstruction _(Bug Fix)_
+### 1. FAISS Index Reconstruction (Bug Fix)
 
-During the codebase audit, discovered the committed `combined.index` file had only **1,775 vectors** despite the database containing **2,794 embeddings**. The index was built before all datasets were embedded and never rebuilt — silently missing 36% of the data. Fixed by rebuilding from all available embeddings. Final index: **3,663 vectors** after full BDD10K re-ingestion.
+During the codebase audit, discovered the committed `combined.index` file had only **1,775 vectors** despite the database containing **2,794 embeddings**. The index was built before all datasets were embedded and never rebuilt -- silently missing 36% of the data. Fixed by rebuilding from all available embeddings. Final index: **3,663 vectors** after full BDD10K re-ingestion.
 
 ### 2. Precision@K Evaluation Framework
 
 Built a formal benchmarking system to measure retrieval quality before and after any changes. Runs 20 test queries and computes:
 
-- **Precision@5, @10, @20** — what fraction of top results are relevant
-- **Mean Reciprocal Rank (MRR)** — how high the first relevant result appears
-- **Dataset Diversity Score** — how evenly results span across datasets
+- **Precision@5, @10, @20** -- what fraction of top results are relevant
+- **Mean Reciprocal Rank (MRR)** -- how high the first relevant result appears
+- **Dataset Diversity Score** -- how evenly results span across datasets
 
 This is the foundation everything else is measured against.
 
@@ -54,26 +54,26 @@ This is the foundation everything else is measured against.
 
 Added a metadata-aware re-ranking layer on top of CLIP semantic similarity. The system now detects contextual signals in the query (night, rain, urban, highway, surround view, pedestrian, vehicle) and boosts frames from datasets that match those conditions:
 
-- _"rainy night city"_ → boosts BDD10K (has weather/night variety)
-- _"rural highway open road"_ → boosts KITTI (German suburban roads)
-- _"urban intersection"_ → boosts Argoverse + BDD10K (city driving)
+- _"rainy night city"_ -> boosts BDD10K (has weather/night variety)
+- _"rural highway open road"_ -> boosts KITTI (German suburban roads)
+- _"urban intersection"_ -> boosts Argoverse + BDD10K (city driving)
 
-Final score: `hybrid_score = CLIP_distance - (metadata_boost × 0.3)`
+Final score: `hybrid_score = CLIP_distance - (metadata_boost x 0.3)`
 
 ### 4. Minimum Quota Diversity
 
-Replaced the round-robin interleaving with a minimum quota system — every dataset with candidates is guaranteed at least 2 results before remaining slots are filled by score. This ensures underrepresented datasets (like Argoverse with only 235 frames) always appear in results.
+Replaced the round-robin interleaving with a minimum quota system -- every dataset with candidates is guaranteed at least 2 results before remaining slots are filled by score. This ensures underrepresented datasets (like Argoverse with only 235 frames) always appear in results.
 
 ### 5. UI Enhancements
 
-- **Dataset color badges** — KITTI=blue, BDD10K=green, Argoverse=purple for instant visual provenance
-- **Rank numbers** — Result #1, #2 instead of generic Frame labels
-- **Match percentage** — L2 distance converted to human-readable %, color coded green/gray/red
-- **Dataset filter buttons** — styled pill buttons replacing the plain text input field
+- **Dataset color badges** -- KITTI=blue, BDD10K=green, Argoverse=purple for instant visual provenance
+- **Rank numbers** -- Result #1, #2 instead of generic Frame labels
+- **Match percentage** -- L2 distance converted to human-readable %, color coded green/gray/red
+- **Dataset filter buttons** -- styled pill buttons for filtering by dataset
 
-### 6. FAISS HNSW Parameter Sweep _(Empirical Study)_
+### 6. FAISS HNSW Parameter Sweep (Empirical Study)
 
-Ran a full parameter sweep across M=[8,16,32] × efSearch=[32,64,128]. Best config M=32, efSearch=32 achieved 100% recall at 6x speed improvement over FlatL2 in isolation. However, the full benchmark showed missing results and recall degradation at our dataset size.
+Ran a full parameter sweep across M=[8,16,32] x efSearch=[32,64,128]. Best config M=32, efSearch=32 achieved 100% recall at 6x speed improvement over FlatL2 in isolation. However, the full benchmark showed missing results and recall degradation at our dataset size.
 
 **Finding:** FlatL2 retained as the optimal index at 3,663 vectors. HNSW requires larger datasets to outperform brute force search. Negative result, documented as a valid engineering finding.
 
@@ -81,7 +81,7 @@ Ran a full parameter sweep across M=[8,16,32] × efSearch=[32,64,128]. Best conf
 
 ## Benchmark Results
 
-All results measured using `backendd/scripts/benchmark_precision.py` — 20 queries, k=20.
+All results measured using `backendd/scripts/benchmark_precision.py` -- 20 queries, k=20.
 
 | Metric            | Baseline | Post-Hybrid | Post-Quota | Final (May 2026) | Delta  |
 | ----------------- | -------- | ----------- | ---------- | ---------------- | ------ |
@@ -89,9 +89,9 @@ All results measured using `backendd/scripts/benchmark_precision.py` — 20 quer
 | Mean Precision@10 | 85.5%    | 85.5%       | 87.5%      | **90.0%**        | +4.5%  |
 | Mean Precision@20 | 86.1%    | 86.6%       | 88.8%      | **89.1%**        | +3.0%  |
 | Mean MRR          | 0.975    | 1.000       | 1.000      | **1.000**        | +0.025 |
-| Dataset Diversity | 66.7%    | 66.7%       | 66.7%      | **56.9%**        | −9.8%  |
+| Dataset Diversity | 66.7%    | 66.7%       | 66.7%      | **56.9%**        | -9.8%  |
 
-**Key finding:** Precision improved across all K values. MRR reached a perfect 1.000 — every query returns a relevant result as the first hit. Diversity decreased in the final run because BDD10K now has 1,380 frames (vs 920 previously), dominating more queries by volume. This is a data composition effect, not an algorithm regression. Diversity ceiling is a structural data coverage problem — documented as a finding, with NuScenes embedding identified as the clearest path forward.
+**Key finding:** Precision improved across all K values. MRR reached a perfect 1.000 -- every query returns a relevant result as the first hit. Diversity decreased in the final run because BDD10K now has 1,380 frames (vs 920 previously), dominating more queries by volume. This is a data composition effect, not an algorithm regression. Diversity ceiling is a structural data coverage problem -- documented as a finding, with NuScenes embedding identified as the clearest path forward.
 
 ---
 
@@ -159,7 +159,7 @@ python backendd/scripts/benchmark_precision.py --output backendd/scripts/results
 # Rebuild combined FlatL2 index from all embeddings in Postgres
 python3 -m backendd.scripts.build_faiss_index --combined
 
-# Build HNSW index (experimental — see findings above)
+# Build HNSW index (experimental -- see findings above)
 python3 -m backendd.scripts.build_faiss_index --hnsw
 ```
 
@@ -191,15 +191,15 @@ Original repository: [github.com/huscse/Navis-vlm-dataset-navigator](https://git
 
 ## Capstone Progress
 
-| Week  | Milestone                                                   | Status  |
-| ----- | ----------------------------------------------------------- | ------- |
-| 3–4   | Codebase audit, schema mapping, DB verification             | ✅ Done |
-| 5     | Fixed FAISS index (1,775 → 3,663 vectors)                   | ✅ Done |
-| 5     | Established Precision@K baseline (P@5=84%, MRR=0.975)       | ✅ Done |
-| 6–7   | Hybrid retrieval + metadata signal detection                | ✅ Done |
-| 7     | Minimum quota diversity system                              | ✅ Done |
-| 8–9   | FAISS HNSW parameter sweep (reverted to FlatL2)             | ✅ Done |
-| 9–10  | UI improvements: badges, rank numbers, match %, filter btns | ✅ Done |
-| 11    | BDD10K re-ingestion + full index rebuild (3,663 vectors)    | ✅ Done |
-| 12    | Final benchmark run — P@5=91.8%, MRR=1.000                  | ✅ Done |
-| 13–15 | Final slide deck + presentation video                       | ✅ Done |
+| Week  | Milestone                                                   | Status |
+| ----- | ----------------------------------------------------------- | ------ |
+| 3-4   | Codebase audit, schema mapping, DB verification             | Done   |
+| 5     | Fixed FAISS index (1,775 -> 3,663 vectors)                  | Done   |
+| 5     | Established Precision@K baseline (P@5=84%, MRR=0.975)       | Done   |
+| 6-7   | Hybrid retrieval + metadata signal detection                | Done   |
+| 7     | Minimum quota diversity system                              | Done   |
+| 8-9   | FAISS HNSW parameter sweep (reverted to FlatL2)             | Done   |
+| 9-10  | UI improvements: badges, rank numbers, match %, filter btns | Done   |
+| 11    | BDD10K re-ingestion + full index rebuild (3,663 vectors)    | Done   |
+| 12    | Final benchmark run -- P@5=91.8%, MRR=1.000                 | Done   |
+| 13-15 | Final slide deck + presentation video                       | Done   |
