@@ -1,7 +1,7 @@
 # NAVIS-Extended — CISC 4900 Capstone
 
 **Husnain Khaliq · Brooklyn College · CISC 4900 Spring 2026**  
-**Supervisor:** Taimoor Hafeez
+**Supervisor:** Taimoor Hafeez  
 **Based on:** NAVIS (Break Through Tech AI Studio, Fall 2025 · Latitude AI)
 
 ---
@@ -19,7 +19,7 @@ The original system was built by a 7-person team during the Break Through Tech A
 - **YOLOv8** for object detection and filtering
 - **Google Drive** for image storage
 
-The system indexes frames from four autonomous driving datasets: **KITTI**, **BDD10K**, **Argoverse**, and **NuScenes** (5,218 frames total).
+The system indexes frames from three embedded autonomous driving datasets: **KITTI**, **BDD10K**, and **Argoverse** (3,663 embedded frames).
 
 ---
 
@@ -27,7 +27,7 @@ The system indexes frames from four autonomous driving datasets: **KITTI**, **BD
 
 NAVIS-Extended is my independent CISC 4900 capstone project, extending the original proof-of-concept into a more precise, measurable, and architecturally sound system.
 
-The original system had no formal evaluation framework — there was no way to know if changes made things better or worse. My capstone introduces exactly that: a before/after measurement system with three targeted improvements.
+The original system had no formal evaluation framework — there was no way to know if changes made things better or worse. My capstone introduces exactly that: a before/after measurement system with five targeted improvements.
 
 **The core question this project answers:**  
 _Can we improve retrieval precision and dataset diversity in a VLM-powered semantic search system through hybrid ranking and better indexing — and can we prove it with numbers?_
@@ -36,7 +36,11 @@ _Can we improve retrieval precision and dataset diversity in a VLM-powered seman
 
 ## Goals and Improvements
 
-### 1. Precision@K Evaluation Framework
+### 1. FAISS Index Reconstruction _(Bug Fix)_
+
+During the codebase audit, discovered the committed `combined.index` file had only **1,775 vectors** despite the database containing **2,794 embeddings**. The index was built before all datasets were embedded and never rebuilt — silently missing 36% of the data. Fixed by rebuilding from all available embeddings. Final index: **3,663 vectors** after full BDD10K re-ingestion.
+
+### 2. Precision@K Evaluation Framework
 
 Built a formal benchmarking system to measure retrieval quality before and after any changes. Runs 20 test queries and computes:
 
@@ -46,9 +50,9 @@ Built a formal benchmarking system to measure retrieval quality before and after
 
 This is the foundation everything else is measured against.
 
-### 2. Hybrid Retrieval Re-ranking
+### 3. Hybrid Retrieval Re-ranking
 
-Added a metadata-aware re-ranking layer on top of CLIP semantic similarity. The system now detects contextual signals in the query (night, rain, urban, highway, surround view) and boosts frames from datasets that match those conditions:
+Added a metadata-aware re-ranking layer on top of CLIP semantic similarity. The system now detects contextual signals in the query (night, rain, urban, highway, surround view, pedestrian, vehicle) and boosts frames from datasets that match those conditions:
 
 - _"rainy night city"_ → boosts BDD10K (has weather/night variety)
 - _"rural highway open road"_ → boosts KITTI (German suburban roads)
@@ -56,13 +60,22 @@ Added a metadata-aware re-ranking layer on top of CLIP semantic similarity. The 
 
 Final score: `hybrid_score = CLIP_distance - (metadata_boost × 0.3)`
 
-### 3. Minimum Quota Diversity
+### 4. Minimum Quota Diversity
 
 Replaced the round-robin interleaving with a minimum quota system — every dataset with candidates is guaranteed at least 2 results before remaining slots are filled by score. This ensures underrepresented datasets (like Argoverse with only 235 frames) always appear in results.
 
-### 4. FAISS Index Reconstruction _(Bug Fix)_
+### 5. UI Enhancements
 
-During the codebase audit, discovered the committed `combined.index` file had only **1,775 vectors** despite the database containing **2,794 embeddings**. The index was built before all datasets were embedded and never rebuilt — silently missing 36% of the data. Fixed by rebuilding from all available embeddings.
+- **Dataset color badges** — KITTI=blue, BDD10K=green, Argoverse=purple for instant visual provenance
+- **Rank numbers** — Result #1, #2 instead of generic Frame labels
+- **Match percentage** — L2 distance converted to human-readable %, color coded green/gray/red
+- **Dataset filter buttons** — styled pill buttons replacing the plain text input field
+
+### 6. FAISS HNSW Parameter Sweep _(Empirical Study)_
+
+Ran a full parameter sweep across M=[8,16,32] × efSearch=[32,64,128]. Best config M=32, efSearch=32 achieved 100% recall at 6x speed improvement over FlatL2 in isolation. However, the full benchmark showed missing results and recall degradation at our dataset size.
+
+**Finding:** FlatL2 retained as the optimal index at 3,663 vectors. HNSW requires larger datasets to outperform brute force search. Negative result, documented as a valid engineering finding.
 
 ---
 
@@ -70,42 +83,44 @@ During the codebase audit, discovered the committed `combined.index` file had on
 
 All results measured using `backendd/scripts/benchmark_precision.py` — 20 queries, k=20.
 
-| Metric            | Baseline | Post-Hybrid | Post-Quota | Delta  |
-| ----------------- | -------- | ----------- | ---------- | ------ |
-| Mean Precision@5  | 84.0%    | 88.0%       | **88.0%**  | +4.0%  |
-| Mean Precision@10 | 85.5%    | 85.5%       | **87.5%**  | +2.0%  |
-| Mean Precision@20 | 86.1%    | 86.6%       | **88.8%**  | +2.7%  |
-| Mean MRR          | 0.975    | 1.000       | **1.000**  | +0.025 |
-| Dataset Diversity | 66.7%    | 66.7%       | **66.7%**  | 0%     |
+| Metric            | Baseline | Post-Hybrid | Post-Quota | Final (May 2026) | Delta  |
+| ----------------- | -------- | ----------- | ---------- | ---------------- | ------ |
+| Mean Precision@5  | 84.0%    | 88.0%       | 88.0%      | **91.8%**        | +7.8%  |
+| Mean Precision@10 | 85.5%    | 85.5%       | 87.5%      | **90.0%**        | +4.5%  |
+| Mean Precision@20 | 86.1%    | 86.6%       | 88.8%      | **89.1%**        | +3.0%  |
+| Mean MRR          | 0.975    | 1.000       | 1.000      | **1.000**        | +0.025 |
+| Dataset Diversity | 66.7%    | 66.7%       | 66.7%      | **56.9%**        | −9.8%  |
 
-**Key finding:** Precision improved across all K values. Diversity is structurally limited — with only 235 Argoverse frames vs 1,639 KITTI frames, many queries simply don't surface Argoverse candidates from FAISS regardless of re-ranking. This is a data coverage problem, not a code problem, and is documented as a finding.
+**Key finding:** Precision improved across all K values. MRR reached a perfect 1.000 — every query returns a relevant result as the first hit. Diversity decreased in the final run because BDD10K now has 1,380 frames (vs 920 previously), dominating more queries by volume. This is a data composition effect, not an algorithm regression. Diversity ceiling is a structural data coverage problem — documented as a finding, with NuScenes embedding identified as the clearest path forward.
 
 ---
 
 ## Repository Structure
 
 ```
-
 extend-navis/
-├── backend/ # Original team's backend (unchanged)
-├── backendd/ # Capstone extension (all new work lives here)
-│ ├── app/ # FastAPI entrypoint
-│ ├── routes/
-│ │ └── search.py # Modified: hybrid re-ranking + quota diversity
-│ ├── services/
-│ │ ├── text_embed.py # CLIP text encoder
-│ │ ├── drive.py # Google Drive integration
-│ │ └── hybrid_rerank.py # NEW: metadata signal detection + re-ranking
-│ ├── scripts/
-│ │ ├── build_faiss_index.py # Rebuild FAISS index from Postgres
-│ │ ├── benchmark_precision.py # NEW: Precision@K evaluation framework
-│ │ └── results/ # Benchmark result JSON files
-│ ├── db/ # Postgres connection
-│ ├── workers/ # Embedding workers
-│ └── CAPSTONE.md # Detailed progress log
-├── frontend/ # Original Next.js frontend (unchanged)
-└── README.md # This file
-
+├── backend/                        # Original team's backend (unchanged)
+├── backendd/                       # Capstone extension (all new work lives here)
+│   ├── app/                        # FastAPI entrypoint
+│   ├── routes/
+│   │   └── search.py               # Modified: hybrid re-ranking + quota diversity
+│   ├── services/
+│   │   ├── text_embed.py           # CLIP text encoder
+│   │   ├── drive.py                # Google Drive integration
+│   │   └── hybrid_rerank.py        # NEW: metadata signal detection + re-ranking
+│   ├── scripts/
+│   │   ├── build_faiss_index.py    # Rebuild FAISS index from Postgres
+│   │   ├── benchmark_precision.py  # NEW: Precision@K evaluation framework
+│   │   ├── tune_hnsw.py            # NEW: HNSW parameter sweep
+│   │   ├── embed_bdd10k.py         # BDD10K embedding pipeline
+│   │   ├── ingest_bdd10k_gdrive_auto.py  # BDD10K ingestion from Drive
+│   │   └── results/                # Benchmark result JSON files
+│   ├── db/                         # Postgres connection
+│   ├── faiss_indexes/              # Serialized FAISS index + frame ID mapping
+│   ├── workers/                    # Embedding workers
+│   └── CAPSTONE.md                 # Detailed progress log
+├── frontend/                       # Next.js frontend (UI improvements added)
+└── README.md                       # This file
 ```
 
 ---
@@ -113,13 +128,16 @@ extend-navis/
 ## Running the Extended Backend
 
 ```bash
+# Start Postgres container
+/Applications/Docker.app/Contents/Resources/bin/docker start navis-postgres
+
 # From project root
 cd /path/to/extend-navis
 source .venv/bin/activate
-uvicorn backendd.app.main:app --reload
+.venv/bin/uvicorn backendd.app.main:app --reload
 ```
 
-**Important:** Always run from the project root, not from inside `backendd/`, so Python resolves `backendd.*` imports correctly.
+**Important:** Always run from the project root, not from inside `backendd/`, so Python resolves `backendd.*` imports correctly. Use `.venv/bin/uvicorn` explicitly to avoid picking up the system Anaconda uvicorn.
 
 ---
 
@@ -135,15 +153,29 @@ python backendd/scripts/benchmark_precision.py --output backendd/scripts/results
 
 ---
 
+## Rebuilding the FAISS Index
+
+```bash
+# Rebuild combined FlatL2 index from all embeddings in Postgres
+python3 -m backendd.scripts.build_faiss_index --combined
+
+# Build HNSW index (experimental — see findings above)
+python3 -m backendd.scripts.build_faiss_index --hnsw
+```
+
+---
+
 ## Dataset Coverage
 
 | Dataset   | Frames    | Embeddings | Notes                                            |
 | --------- | --------- | ---------- | ------------------------------------------------ |
-| KITTI     | 1,639     | 1,639      | German suburban/highway roads                    |
-| NuScenes  | 2,424     | 0          | Frames exist, never embedded                     |
-| BDD10K    | 920       | 920        | Dashcam, diverse conditions including night/rain |
+| KITTI     | 2,048     | 2,048      | German suburban/highway roads                    |
+| BDD10K    | 1,380     | 1,380      | Dashcam, diverse conditions including night/rain |
 | Argoverse | 235       | 235        | Pittsburgh urban driving, 5 ring cameras         |
-| **Total** | **5,218** | **2,794**  |                                                  |
+| NuScenes  | 2,424     | 0          | Frames exist in DB, not yet embedded             |
+| **Total** | **6,087** | **3,663**  |                                                  |
+
+**Next step:** Embedding NuScenes (2,424 frames) would increase the searchable index from 3,663 to 6,087 frames and directly address the diversity ceiling.
 
 ---
 
@@ -159,13 +191,15 @@ Original repository: [github.com/huscse/Navis-vlm-dataset-navigator](https://git
 
 ## Capstone Progress
 
-| Week  | Milestone                                                   | Status     |
-| ----- | ----------------------------------------------------------- | ---------- |
-| 3–4   | Codebase audit, schema mapping, DB verification             | ✅ Done    |
-| 5     | Fixed FAISS index (1,775 → 2,794 vectors)                   | ✅ Done    |
-| 5     | Established Precision@K baseline (P@5=84%, Diversity=66.7%) | ✅ Done    |
-| 6–7   | Hybrid retrieval + metadata signal detection                | ✅ Done    |
-| 7     | Minimum quota diversity system                              | ✅ Done    |
-| 8–9   | FAISS HNSW parameter sweep                                  | 📋 Planned |
-| 10–11 | Final benchmark + analysis                                  | 📋 Planned |
-| 12–14 | Final report + presentation                                 | 📋 Planned |
+| Week  | Milestone                                                   | Status  |
+| ----- | ----------------------------------------------------------- | ------- |
+| 3–4   | Codebase audit, schema mapping, DB verification             | ✅ Done |
+| 5     | Fixed FAISS index (1,775 → 3,663 vectors)                   | ✅ Done |
+| 5     | Established Precision@K baseline (P@5=84%, MRR=0.975)       | ✅ Done |
+| 6–7   | Hybrid retrieval + metadata signal detection                | ✅ Done |
+| 7     | Minimum quota diversity system                              | ✅ Done |
+| 8–9   | FAISS HNSW parameter sweep (reverted to FlatL2)             | ✅ Done |
+| 9–10  | UI improvements: badges, rank numbers, match %, filter btns | ✅ Done |
+| 11    | BDD10K re-ingestion + full index rebuild (3,663 vectors)    | ✅ Done |
+| 12    | Final benchmark run — P@5=91.8%, MRR=1.000                  | ✅ Done |
+| 13–15 | Final slide deck + presentation video                       | ✅ Done |

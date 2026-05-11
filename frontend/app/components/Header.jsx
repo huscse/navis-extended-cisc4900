@@ -19,6 +19,7 @@ export default function Header({ initialQuery }) {
   const [results, setResults] = useState([]);
   const [error, setError] = useState(null);
   const [objectFilter, setObjectFilter] = useState(''); // NEW
+  const [dataset, setDataset] = useState('');
 
   // Run search on mount if URL has query
   useEffect(() => {
@@ -61,7 +62,8 @@ export default function Header({ initialQuery }) {
       const data = await semanticSearch({
         text: query,
         k: 8,
-        objects: filterObjects || undefined, // UPDATED
+        objects: filterObjects || undefined,
+        dataset: dataset || undefined,
       });
       const hits = data.hits || [];
 
@@ -125,8 +127,10 @@ export default function Header({ initialQuery }) {
       <HeroSection
         onSearch={(q) => handleSearch(q, true)}
         loading={loading}
-        objectFilter={objectFilter} // NEW
-        onObjectFilterChange={setObjectFilter} // NEW
+        objectFilter={objectFilter}
+        onObjectFilterChange={setObjectFilter}
+        dataset={dataset}
+        onDatasetChange={setDataset}
       />
 
       <SearchResults
